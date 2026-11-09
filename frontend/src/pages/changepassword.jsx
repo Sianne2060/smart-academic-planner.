@@ -1,15 +1,21 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function ChangePassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const [showNewPassword, setShowNewPassword] = useState(false);
-const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const user = JSON.parse(localStorage.getItem("user"));
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,19 +26,23 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
       return;
     }
 
-    const user = JSON.parse(localStorage.getItem("user"));
-
     try {
-      await axios.post("http://localhost:5000/api/auth/change-password", {
-        userId: user.id,
-        newPassword,
-      });
+      await axios.post(
+        "http://localhost:5000/api/auth/change-password",
+        { newPassword },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
 
-      user.mustChangePassword = false;
-      localStorage.setItem("user", JSON.stringify(user));
+      const updatedUser = { ...user, mustChangePassword: false };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
 
       navigate("/dashboard");
     } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
       setError(err.response?.data?.error || "Failed to change password");
     }
   };
@@ -47,30 +57,38 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="password-field">
-  <input
-    type={showNewPassword ? "text" : "password"}
-    placeholder="New password"
-    value={newPassword}
-    onChange={(e) => setNewPassword(e.target.value)}
-    required
-  />
-  <button type="button" className="password-toggle" onClick={() => setShowNewPassword(!showNewPassword)}>
-    {showNewPassword ? <FaEyeSlash /> : <FaEye />}
-  </button>
-</div>
+            <input
+              type={showNewPassword ? "text" : "password"}
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+            >
+              {showNewPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
 
-<div className="password-field">
-  <input
-    type={showConfirmPassword ? "text" : "password"}
-    placeholder="Confirm new password"
-    value={confirmPassword}
-    onChange={(e) => setConfirmPassword(e.target.value)}
-    required
-  />
-  <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-  </button>
-</div>
+          <div className="password-field">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
 
           {error && <p className="auth-error">{error}</p>}
 

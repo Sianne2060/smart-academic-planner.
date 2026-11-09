@@ -3,6 +3,8 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { requireAuth } = require('../middleware/auth');
+
 
 const crypto = require('crypto');
 const transporter = require('../config/mailer');
@@ -12,78 +14,50 @@ function generateTempPassword() {
 }
 
 router.post('/register', async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phoneNumber,
-    role,
-    studentId,
-    classGroup,
-    lecturerCode,
-  } = req.body;
+  const { firstName, lastName, email, phoneNumber, studentId } = req.body;
 
-  if (!firstName || !lastName || !email || !phoneNumber || !role) {
+  if (!firstName || !lastName || !email || !phoneNumber || !studentId) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
-  if (role === 'student') {
-    const studentIdPattern = /^[A-Z]{3}\d{3}-[A-Z]\d{3}-\d{4}\/\d{4}$/;
-    if (!studentId || !studentIdPattern.test(studentId)) {
-      return res.status(400).json({ error: 'A valid student ID is required' });
-    }
-    if (!classGroup) {
-      return res.status(400).json({ error: 'Class/group is required for students' });
-    }
-  } else if (role === 'lecturer') {
-    if (lecturerCode !== process.env.LECTURER_ACCESS_CODE) {
-      return res.status(403).json({ error: 'Invalid lecturer access code' });
-    }
-  } else {
-    return res.status(400).json({ error: 'Invalid role' });
-  }
+  const cleanStudentId = studentId.trim().toUpperCase();
 
   try {
+    const roster = await pool.query(
+      'SELECT class_group FROM student_roster WHERE student_id = $1',
+      [cleanStudentId]
+    );
+
+    if (roster.rows.length === 0) {
+      return res.status(403).json({
+        error: "This student ID is not on the school's records. Please contact the administrator.",
+      });
+    }
+
+    const classGroup = roster.rows[0].class_group;
     const tempPassword = generateTempPassword();
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
-    const fullName = `${firstName} ${lastName}`;
-    const approvalStatus = role === 'lecturer' ? 'pending' : 'approved';
+    const fullName = `${firstName.trim()} ${lastName.trim()}`;
 
     const result = await pool.query(
       `INSERT INTO users (name, email, password_hash, role, phone_number, student_id, class_group, must_change_password, approval_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, $8)
+       VALUES ($1, $2, $3, 'student', $4, $5, $6, TRUE, 'pending')
        RETURNING id, name, email, role`,
-      [
-        fullName,
-        email,
-        hashedPassword,
-        role,
-        phoneNumber,
-        role === 'student' ? studentId : null,
-        role === 'student' ? classGroup : null,
-        approvalStatus,
-      ]
+      [fullName, email.trim(), hashedPassword, phoneNumber.trim(), cleanStudentId, classGroup]
     );
-
-    const approvalNote =
-      role === 'lecturer'
-        ? '\n\nYour account is awaiting approval by the administrator. You will be able to log in once it is approved, and we will email you when that happens.'
-        : '\n\nPlease log in and change this password immediately.';
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: email.trim(),
       subject: 'Your Smart Academic Planner Account',
-      text: `Hello ${firstName},\n\nYour account has been created.\n\nTemporary password: ${tempPassword}${approvalNote}`,
+      text: `Hello ${firstName.trim()},\n\nYour registration has been received.\n\nTemporary password: ${tempPassword}\n\nYour account is awaiting approval by the administrator. You will be able to log in once it is approved, and we will email you when that happens.`,
     });
 
     res.status(201).json({
       user: result.rows[0],
-      pendingApproval: role === 'lecturer',
+      pendingApproval: true,
       message:
-        role === 'lecturer'
-          ? 'Registration received. Your account is awaiting administrator approval.'
-          : 'Registration successful. Check your email for your temporary password.',
+        'Registration received. Your account is awaiting administrator approval, and we will email you when it is approved.',
     });
   } catch (err) {
     if (err.code === '23505') {
@@ -93,7 +67,6 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ error: 'Registration failed' });
   }
 });
-
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
@@ -184,6 +157,32 @@ router.post('/forgot-password', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Could not process the request. Please try again.' });
+  }
+});
+
+router.post('/change-password', requireAuth, async (req, res) => {
+  const { newPassword } = req.body;
+
+  if (!newPassword) {
+    return res.status(400).json({ error: 'New password is required' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      'UPDATE users SET password_hash = $1, must_change_password = FALSE WHERE id = $2',
+      [hashedPassword, req.user.id]
+    );
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 
