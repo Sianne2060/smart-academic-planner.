@@ -1,57 +1,96 @@
-const userRole = "lecturer";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  FaThLarge,
+  FaChalkboardTeacher,
+  FaClipboardList,
+  FaBook,
+  FaFileAlt,
+  FaBell,
+  FaCog,
+  FaTasks,
+  FaSignOutAlt,
+  FaGraduationCap,
+  FaRegClock,
+} from "react-icons/fa";
 
 const menuItems = {
   student: [
-    "Dashboard",
-    "Timetable",
-    "Assignments",
-    "Tasks",
-    "Assessments",
-    "Notifications",
-    "Performance",
-    "Profile",
+    { label: "Dashboard", path: "/dashboard", icon: FaThLarge },
+    { label: "Assignments", path: "/assignments", icon: FaClipboardList },
+    { label: "Tasks", path: "/tasks", icon: FaTasks },
+    { label: "Assessments", path: "/assessments", icon: FaFileAlt },
+    { label: "Notifications", path: "/notifications", icon: FaBell },
+    { label: "Settings", path: "/settings", icon: FaCog },
   ],
 
   lecturer: [
-    "Dashboard",
-    "My Classes",
-    "My Units",
-    "Assignments",
-    "Assessments",
-    "Student Performance",
-    "Notifications",
-    "Profile",
-  ],
-
-  admin: [
-    "Dashboard",
-    "Schools",
-    "Classes",
-    "Units",
-    "Students",
-    "Lecturers",
-    "Timetable",
-    "Assessments",
-    "Reports",
-    "Notifications",
-    "Settings",
+    { label: "Dashboard", path: "/dashboard", icon: FaThLarge },
+    { label: "Classes", path: "/classes", icon: FaChalkboardTeacher },
+    { label: "Assignments", path: "/assignments", icon: FaClipboardList },
+    { label: "My Units", path: "/my-units", icon: FaBook },
+    { label: "Assessments", path: "/assessments", icon: FaFileAlt },
+    { label: "Notifications", path: "/notifications", icon: FaBell },
+    { label: "Settings", path: "/settings", icon: FaCog },
   ],
 };
 
-function Sidebarmenu() {
+function Sidebarmenu({ role }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <aside className="sidebar">
-      <h2>Smart Academic Planner</h2>
+      <div>
+        <div className="sidebar-brand">
+          <div className="brand-icon">
+            <FaGraduationCap />
+          </div>
+          <h2>Smart Academic Planner</h2>
+        </div>
 
-      <p>Logged in as: {userRole}</p>
+        <p className="sidebar-label">Menu</p>
 
-      <nav>
-        <ul>
-          {menuItems[userRole].map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </nav>
+        <nav>
+          <ul>
+            {menuItems[role]?.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={location.pathname === item.path ? "active-link" : ""}
+                  >
+                    <Icon />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
+
+      <div>
+        <div className="next-deadline">
+          <div className="next-icon">
+            <FaRegClock />
+          </div>
+          <div>
+            <p className="next-title">Next deadline</p>
+            <p className="next-text">Nothing due yet</p>
+          </div>
+        </div>
+
+        <button className="logout-button" onClick={handleLogout}>
+          <FaSignOutAlt />
+          Log Out
+        </button>
+      </div>
     </aside>
   );
 }
