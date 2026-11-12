@@ -11,6 +11,10 @@ import {
   FaSignOutAlt,
   FaGraduationCap,
   FaRegClock,
+  FaUserCheck,
+  FaUserGraduate,
+  FaChartBar,
+  FaLayerGroup,
 } from "react-icons/fa";
 
 const menuItems = {
@@ -30,6 +34,17 @@ const menuItems = {
     { label: "My Units", path: "/my-units", icon: FaBook },
     { label: "Assessments", path: "/assessments", icon: FaFileAlt },
     { label: "Notifications", path: "/notifications", icon: FaBell },
+    { label: "Settings", path: "/settings", icon: FaCog },
+  ],
+
+  admin: [
+    { label: "Dashboard", path: "/dashboard", icon: FaThLarge },
+    { label: "Approvals", path: "/approvals", icon: FaUserCheck },
+    { label: "Student Roster", path: "/roster", icon: FaUserGraduate },
+    { label: "Lecturers", path: "/lecturers", icon: FaChalkboardTeacher },
+    { label: "Classes", path: "/manage-classes", icon: FaLayerGroup },
+    { label: "Units", path: "/manage-units", icon: FaBook },
+    { label: "Reports", path: "/reports", icon: FaChartBar },
     { label: "Settings", path: "/settings", icon: FaCog },
   ],
 };
@@ -76,15 +91,17 @@ function Sidebarmenu({ role }) {
       </div>
 
       <div>
-        <div className="next-deadline">
-          <div className="next-icon">
-            <FaRegClock />
+        {role !== "admin" && (
+          <div className="next-deadline">
+            <div className="next-icon">
+              <FaRegClock />
+            </div>
+            <div>
+              <p className="next-title">Next deadline</p>
+              <p className="next-text">Nothing due yet</p>
+            </div>
           </div>
-          <div>
-            <p className="next-title">Next deadline</p>
-            <p className="next-text">Nothing due yet</p>
-          </div>
-        </div>
+        )}
 
         <button className="logout-button" onClick={handleLogout}>
           <FaSignOutAlt />

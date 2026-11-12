@@ -17,6 +17,7 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 import Sidebarmenu from "../components/sidebarmenu";
+import { AdminHome } from "./Admin";
 
 // Set to false to hide the made-up sample content and show empty states instead
 const SHOW_SAMPLE_DATA = true;
@@ -171,14 +172,16 @@ function Dashboard() {
 
           {isHome && (
             <div className="topbar-actions">
-              <button
-                className="icon-button"
-                onClick={() => navigate("/notifications")}
-                aria-label="Notifications"
-              >
-                <FaBell />
-                {SHOW_SAMPLE_DATA && <span className="bell-badge">3</span>}
-              </button>
+              {user.role !== "admin" && (
+                <button
+                  className="icon-button"
+                  onClick={() => navigate("/notifications")}
+                  aria-label="Notifications"
+                >
+                  <FaBell />
+                  {SHOW_SAMPLE_DATA && <span className="bell-badge">3</span>}
+                </button>
+              )}
 
               <div className="profile-wrapper">
                 <button className="profile-button" onClick={() => setMenuOpen(!menuOpen)}>
@@ -215,6 +218,11 @@ function Dashboard() {
 
 export function DashboardHome() {
   const user = JSON.parse(localStorage.getItem("user"));
+
+  if (user.role === "admin") {
+    return <AdminHome />;
+  }
+
   const firstName = user.name.split(" ")[0];
   const data = SHOW_SAMPLE_DATA ? sampleData[user.role] : emptyData;
   const isLecturer = user.role === "lecturer";

@@ -1,11 +1,20 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./app.css";
 import Home from "./pages/Home";
-import Login from "./pages/login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/forgotpassword";
-import ChangePassword from "./pages/ChangePassword";
+import Login from "./pages/Login";
+import Register from "./pages/register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ChangePassword from "./pages/changepassword";
 import Dashboard, { DashboardHome } from "./pages/dashboard";
+import {
+  AdminGuard,
+  ApprovalsPage,
+  RosterPage,
+  LecturersPage,
+  ClassesPage,
+  UnitsPage,
+  ReportsPage,
+} from "./pages/Admin";
 
 function App() {
   return (
@@ -26,6 +35,15 @@ function App() {
           <Route path="/tasks" element={<h1 className="page-title">Tasks</h1>} />
           <Route path="/notifications" element={<h1 className="page-title">Notifications</h1>} />
           <Route path="/settings" element={<h1 className="page-title">Settings</h1>} />
+
+          <Route element={<AdminGuard />}>
+  <Route path="/approvals" element={<ApprovalsPage />} />
+  <Route path="/roster" element={<RosterPage />} />
+  <Route path="/lecturers" element={<LecturersPage />} />
+  <Route path="/manage-classes" element={<ClassesPage />} />
+  <Route path="/manage-units" element={<UnitsPage />} />
+  <Route path="/reports" element={<ReportsPage />} />
+</Route>
         </Route>
       </Routes>
     </BrowserRouter>
